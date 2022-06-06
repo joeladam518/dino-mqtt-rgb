@@ -1,6 +1,9 @@
 #include "config.h"
 // Library Headers
 #include <WiFi.h> // ESP32 Wifi client library
+#if defined(WIFI_SECURE) && WIFI_SECURE
+#include <WiFiClientSecure.h>
+#endif
 #include <Adafruit_MQTT.h>
 #include <Adafruit_MQTT_Client.h>
 #include <Adafruit_NeoPixel.h>
@@ -31,10 +34,18 @@ Adafruit_NeoPixel neoPixel(NEO_PIXEL_COUNT, NEO_PIXEL_PIN, NEO_GRB + NEO_KHZ800)
 NeoPixelRing ring(&neoPixel);
 
 // Wifi client
+#if defined(WIFI_SECURE) && WIFI_SECURE
+WiFiClientSecure client;
+#else
 WiFiClient client;
+#endif
 
 // Mqtt client
+#if defined(WIFI_SECURE) && WIFI_SECURE
 Adafruit_MQTT_Client mqtt(&client, MQTT_BROKER, MQTT_PORT, MQTT_USER, MQTT_PASS);
+#else
+Adafruit_MQTT_Client mqtt(&client, MQTT_BROKER, MQTT_PORT);
+#endif
 
 // Mqtt client subscriptons
 Adafruit_MQTT_Subscribe getColorSub = Adafruit_MQTT_Subscribe(&mqtt, SUB_GET_COLOR);
@@ -76,6 +87,11 @@ void setup()
     Serial.print(F("IP address: "));
     Serial.println(WiFi.localIP());
 
+    #if defined(WIFI_SECURE) && WIFI_SECURE
+    // joelhaker.com cert
+    client.setCACert(root_ca);
+    #endif
+
     // Setup Mqtt
     mqtt.unsubscribe(&getColorSub);
     mqtt.unsubscribe(&setColorSub);
@@ -99,7 +115,7 @@ void setup()
     xTaskCreatePinnedToCore(
         processInputTask,               // Function to be called
         "Process Mqtt Input",           // Name of task
-        1750,                           // Stack size (bytes in ESP32, words in FreeRTOS)
+        2560,                           // Stack size (bytes in ESP32, words in FreeRTOS)
         NULL,                           // Parameter to pass to function
         1,                              // Task priority (0 to configMAX_PRIORITIES - 1)
         &processInputTaskHandle,        // Task handle
@@ -110,7 +126,7 @@ void setup()
     xTaskCreatePinnedToCore(
         processShortActionsTask,        // Function to be called
         "Process Short Actions",        // Name of task
-        2048,                           // Stack size (bytes in ESP32, words in FreeRTOS)
+        2560,                           // Stack size (bytes in ESP32, words in FreeRTOS)
         NULL,                           // Parameter to pass to function
         2,                              // Task priority (0 to configMAX_PRIORITIES - 1)
         &processShortActionsTaskHandle, // Task handle
@@ -121,7 +137,7 @@ void setup()
     xTaskCreatePinnedToCore(
         processLongActionsTask,         // Function to be called
         "Process Long Actions",         // Name of task
-        2048,                           // Stack size (bytes in ESP32, words in FreeRTOS)
+        2560,                           // Stack size (bytes in ESP32, words in FreeRTOS)
         NULL,                           // Parameter to pass to function
         1,                              // Task priority (0 to configMAX_PRIORITIES - 1)
         &processLongActionsTaskHandle,  // Task handle
@@ -317,7 +333,7 @@ void mqttConnect()
         return;
     }
 
-    Serial.print(F("Connecting to MQTT..."));
+    Serial.println(F("Connecting to MQTT..."));
     vTaskSuspend(processShortActionsTaskHandle);
     vTaskSuspend(processLongActionsTaskHandle);
 
