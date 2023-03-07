@@ -32,8 +32,11 @@ typedef struct SubscriptionAction {
 } SubscriptionAction_t;
 
 // Subscribe callbacks
+void getColor(SubscriptionAction_t *action);
+void setColor(SubscriptionAction_t *action);
 
 // Publish functions
+void publishRgbStatus(void);
 
 // Task functions
 void processShortTask(void *parameter);

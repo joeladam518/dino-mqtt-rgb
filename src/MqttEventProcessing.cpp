@@ -173,7 +173,7 @@ void setColor(SubscriptionAction_t *action)
         }
         xSemaphoreGive(ringMutex);
     } else {
-        #if defined(RGB_TREE_DEBUG) && RGB_TREE_DEBUG
+        #if defined(APP_DEBUG) && APP_DEBUG
             Serial.println(F("The ring is already taken. setColor()"));
         #endif
     }
