@@ -134,7 +134,7 @@ void setColor(SubscriptionAction_t *action)
     DeserializationError error = deserializeJson(doc, action->data);
 
     if (error) {
-        APP_LOG_DATA(&error);
+        APP_LOG(&error);
         return;
     }
 
@@ -167,7 +167,7 @@ void processShortTask(void *parameter)
     while (1) {
         if (xQueueReceive(shortActionQueue, &action, 0) == pdTRUE) {
             APP_LOG(F("processShortTask()"));
-            APP_LOG_DATA(&action);
+            APP_LOG(&action);
 
 
             switch(action.type) {
@@ -190,7 +190,7 @@ void processLongTask(void *parameter)
     while (1) {
         if (xQueueReceive(longActionQueue, &action, 0) == pdTRUE) {
             APP_LOG(F("processLongTask()"));
-            APP_LOG_DATA(&action);
+            APP_LOG(&action);
 
             switch(action.type) {
                 case SET_COLOR:
@@ -224,7 +224,7 @@ static void mqtt_subsribe_all(esp_mqtt_client_handle_t client)
 static void mqtt_handle_data_event(esp_mqtt_event_handle_t event)
 {
     APP_LOG(F("\nmqtt_handle_data_event()"));
-    APP_LOG_DATA(event);
+    APP_LOG(event);
 
     SubscriptionAction_t action;
     SubsctiptionActionType_t actionType = getActionType(event);
