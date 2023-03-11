@@ -14,17 +14,11 @@
 #include <ArduinoJson.h>
 #include <esp_log.h>
 // Custom Headers
-#include "MqttEventProcessing.h"
-#include "NeoPixelRing.h"
+#include "mqttEventProcessing.h"
+#include "neoPixelRing.h"
 
 //==============================================================================
 // Globals
-
-// Wifi client
-WiFiClient client;
-
-// Mqtt client
-esp_mqtt_client_handle_t mqttClient;
 
 /**
  *  Adafruit NeoPixel object
@@ -38,8 +32,8 @@ esp_mqtt_client_handle_t mqttClient;
  *      NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
  *      NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
  */
-Adafruit_NeoPixel neoPixel(NEO_PIXEL_COUNT, NEO_PIXEL_PIN, NEO_GRB + NEO_KHZ800);
-NeoPixelRing ring(&neoPixel);
+Adafruit_NeoPixel neoPixels(NEO_PIXEL_COUNT, NEO_PIXEL_PIN, NEO_GRB + NEO_KHZ800);
+NeoPixelRing ring(&neoPixels);
 
 // Task handles
 TaskHandle_t mqttTaskHandle = NULL;
@@ -53,10 +47,7 @@ QueueHandle_t longActionQueue = NULL;
 // Mutexes
 SemaphoreHandle_t ringMutex = NULL;
 
-//==============================================================================
-// Main
-
-// Mqtt client config
+// Mqtt client
 esp_mqtt_client_config_t mqtt_config = {
     .event_loop_handle = &mqttTaskHandle,
     .host = MQTT_BROKER,
@@ -66,6 +57,10 @@ esp_mqtt_client_config_t mqtt_config = {
     .task_stack = 6144,
     .buffer_size = 2048,
 };
+esp_mqtt_client_handle_t mqttClient;
+
+//==============================================================================
+// Functions
 
 static void stop(const __FlashStringHelper *message = NULL)
 {
@@ -75,6 +70,9 @@ static void stop(const __FlashStringHelper *message = NULL)
 
     while(1);
 }
+
+//==============================================================================
+// Main
 
 // NOTE: Set up is excuted on core #1
 void setup()
@@ -98,7 +96,7 @@ void setup()
     Serial.println(WiFi.localIP());
 
     // Configure RTOS
-    shortActionQueue = xQueueCreate(3, sizeof(SubscriptionAction_t));
+    shortActionQueue = xQueueCreate(5, sizeof(SubscriptionAction_t));
     if (!shortActionQueue) {
         stop(F("Failed to ceate shortActionQueue"));
     }

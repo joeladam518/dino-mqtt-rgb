@@ -4,8 +4,9 @@
 #include <soc/soc.h>
 
 // Debug
-#define DEBUG         false // This will trigger other library's debug functionality
-#define APP_DEBUG     false
+#define DEBUG          false // This will trigger other library's debug functionality
+#define APP_DEBUG      false
+#define APP_MQTT_DEBUG false
 
 // Wifi
 #define WLAN_SSID     ""

@@ -2,7 +2,7 @@
 #include <HardwareSerial.h>
 #include <Adafruit_NeoPixel.h>
 #include "led.h"
-#include "NeoPixelRing.h"
+#include "neoPixelRing.h"
 
 //-------------------------------
 // Constructor

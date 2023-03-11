@@ -13,18 +13,15 @@
 #include <esp_log.h>
 #include <mqtt_client.h>
 
+#include "appLog.h"
 #include "led.h"
-#include "MqttEventProcessing.h"
-#include "NeoPixelRing.h"
-
-#if defined(APP_DEBUG) && APP_DEBUG
-#include "debug.h"
-#endif
+#include "mqttEventProcessing.h"
+#include "neoPixelRing.h"
 
 //==============================================================================
 // Helpers
 
-static SubsctiptionCallbackType_t getCallbackType(esp_mqtt_event_handle_t event)
+static SubsctiptionActionType_t getActionType(esp_mqtt_event_handle_t event)
 {
     if (strncmp(SUB_SET_COLOR, event->topic, event->topic_len) == 0) {
         return SET_COLOR;
@@ -38,7 +35,7 @@ static SubsctiptionCallbackType_t getCallbackType(esp_mqtt_event_handle_t event)
 }
 
 
-static bool isShortTask(SubsctiptionCallbackType_t type) {
+static bool isShortTask(SubsctiptionActionType_t type) {
     if (type == GET_COLOR) {
         return true;
     }
@@ -46,7 +43,7 @@ static bool isShortTask(SubsctiptionCallbackType_t type) {
     return false;
 }
 
-static bool isLongTask(SubsctiptionCallbackType_t type)
+static bool isLongTask(SubsctiptionActionType_t type)
 {
     if (type == SET_COLOR) {
         return true;
@@ -57,26 +54,25 @@ static bool isLongTask(SubsctiptionCallbackType_t type)
 
 static void clearAction(SubscriptionAction_t *action)
 {
-    action->callbackType = UNKNOWN;
     action->client = NULL;
+    action->type = UNKNOWN;
     memset(action->data, '\0', SUBSCRIPTIONDATALEN);
     action->dataLength = 0;
 }
 
 static void setAction(
     SubscriptionAction_t *action,
-    SubsctiptionCallbackType_t type,
+    SubsctiptionActionType_t type,
     esp_mqtt_event_handle_t event
 ) {
     clearAction(action);
 
     if (SUBSCRIPTIONDATALEN < event->data_len) {
-        Serial.println("Data length was too long");
         return;
     }
 
-    action->callbackType = type;
     action->client = event->client;
+    action->type = type;
     strncpy(action->data, (char *)event->data, event->data_len);
     action->dataLength = event->data_len;
 }
@@ -86,9 +82,7 @@ static void setAction(
 
 void publishRgbStatus(void)
 {
-    #if defined(APP_DEBUG) && APP_DEBUG
-        Serial.println(F("publishRgbStatus()"));
-    #endif
+    APP_LOG(F("publishRgbStatus()"));
 
     char output[SUBSCRIPTIONDATALEN];
     const int capacity = JSON_OBJECT_SIZE(3);
@@ -99,10 +93,7 @@ void publishRgbStatus(void)
         ring.getColor(&color);
         xSemaphoreGive(ringMutex);
     } else {
-        #if defined(APP_DEBUG) && APP_DEBUG
-            Serial.println(F("The ring is already taken."));
-        #endif
-
+        APP_LOG(F("the ring is already taken"));
         return;
     }
 
@@ -119,15 +110,10 @@ void publishRgbStatus(void)
 
 void getColor(SubscriptionAction_t *action)
 {
-    #if defined(APP_DEBUG) && APP_DEBUG
-        Serial.println("getColor()");
-    #endif
+    APP_LOG(F("getColor()"));
 
     if (SUBSCRIPTIONDATALEN < action->dataLength) {
-        #if defined(APP_DEBUG) && APP_DEBUG
-            Serial.println(F("data is larger than max legnth. Can not parse."));
-        #endif
-
+        APP_LOG(F("can't parse, data is to long..."));
         return;
     }
 
@@ -136,15 +122,10 @@ void getColor(SubscriptionAction_t *action)
 
 void setColor(SubscriptionAction_t *action)
 {
-    #if defined(APP_DEBUG) && APP_DEBUG
-        Serial.println("setColor()");
-    #endif
+    APP_LOG(F("setColor()"));
 
     if (SUBSCRIPTIONDATALEN < action->dataLength) {
-        #if defined(APP_DEBUG) && APP_DEBUG
-            Serial.println(F("data is larger than max legnth. Can not parse."));
-        #endif
-
+        APP_LOG(F("can't parse, data is to long..."));
         return;
     }
 
@@ -153,10 +134,7 @@ void setColor(SubscriptionAction_t *action)
     DeserializationError error = deserializeJson(doc, action->data);
 
     if (error) {
-        #if defined(APP_DEBUG) && APP_DEBUG
-            printDeserializeError(&error);
-        #endif
-
+        APP_LOG_DATA(&error);
         return;
     }
 
@@ -173,9 +151,7 @@ void setColor(SubscriptionAction_t *action)
         }
         xSemaphoreGive(ringMutex);
     } else {
-        #if defined(APP_DEBUG) && APP_DEBUG
-            Serial.println(F("The ring is already taken. setColor()"));
-        #endif
+        APP_LOG(F("the ring is already taken"));
     }
 
     publishRgbStatus();
@@ -190,22 +166,17 @@ void processShortTask(void *parameter)
 
     while (1) {
         if (xQueueReceive(shortActionQueue, &action, 0) == pdTRUE) {
-            #if defined(APP_DEBUG) && APP_DEBUG
-                Serial.println(F("processShortTask()"));
-                printSubscriptionAction(action);
-            #endif
+            APP_LOG(F("processShortTask()"));
+            APP_LOG_DATA(&action);
 
-            switch(action.callbackType) {
+
+            switch(action.type) {
                 case GET_COLOR:
                     getColor(&action);
                     break;
             }
 
             clearAction(&action);
-
-            #if defined(APP_DEBUG) && APP_DEBUG
-                Serial.println(F(""));
-            #endif
         }
 
         vTaskDelay(250 / portTICK_PERIOD_MS);
@@ -218,22 +189,16 @@ void processLongTask(void *parameter)
 
     while (1) {
         if (xQueueReceive(longActionQueue, &action, 0) == pdTRUE) {
-            #if defined(APP_DEBUG) && APP_DEBUG
-                Serial.println(F("processLongTask()"));
-                printSubscriptionAction(action);
-            #endif
+            APP_LOG(F("processLongTask()"));
+            APP_LOG_DATA(&action);
 
-            switch(action.callbackType) {
+            switch(action.type) {
                 case SET_COLOR:
                     setColor(&action);
                     break;
             }
 
             clearAction(&action);
-
-            #if defined(APP_DEBUG) && APP_DEBUG
-                Serial.println(F(""));
-            #endif
         }
 
         vTaskDelay(50 / portTICK_PERIOD_MS);
@@ -258,27 +223,24 @@ static void mqtt_subsribe_all(esp_mqtt_client_handle_t client)
 
 static void mqtt_handle_data_event(esp_mqtt_event_handle_t event)
 {
-    #if defined(APP_DEBUG) && APP_DEBUG
-        Serial.println(F("mqtt_handle_data_event()"));
-        printMqttMessageData(event->topic, event->topic_len, event->data, event->data_len);
-        Serial.println("");
-    #endif
+    APP_LOG(F("\nmqtt_handle_data_event()"));
+    APP_LOG_DATA(event);
 
     SubscriptionAction_t action;
-    SubsctiptionCallbackType_t callbackType = getCallbackType(event);
+    SubsctiptionActionType_t actionType = getActionType(event);
 
-    if (isShortTask(callbackType)) {
-        setAction(&action, callbackType, event);
-        if (action.callbackType != UNKNOWN && action.client != NULL) {
+    if (isShortTask(actionType)) {
+        setAction(&action, actionType, event);
+        if (action.type != UNKNOWN && action.client != NULL) {
             xQueueSend(shortActionQueue, &action, portMAX_DELAY);
         }
-    } else if (isLongTask(callbackType)) {
-        setAction(&action, callbackType, event);
-        if (action.callbackType != UNKNOWN && action.client != NULL) {
+    } else if (isLongTask(actionType)) {
+        setAction(&action, actionType, event);
+        if (action.type != UNKNOWN && action.client != NULL) {
             xQueueSend(longActionQueue, &action, portMAX_DELAY);
         }
     } else {
-        ESP_LOGI(MQTT_TAG, "Topic was unhandled");
+        APP_LOG(F("Topic was unhandled"));
     }
 }
 
@@ -289,31 +251,32 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
 
     switch ((esp_mqtt_event_id_t)event_id) {
         case MQTT_EVENT_CONNECTED:
+            MQTT_EVENT_LOG(F("MQTT_EVENT_CONNECTED"));
             mqtt_subsribe_all(client);
             break;
         case MQTT_EVENT_DISCONNECTED:
-            ESP_LOGI(MQTT_TAG, "MQTT_EVENT_DISCONNECTED");
+            MQTT_EVENT_LOG(F("MQTT_EVENT_DISCONNECTED"));
             break;
         case MQTT_EVENT_SUBSCRIBED:
-            ESP_LOGI(MQTT_TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+            MQTT_EVENT_LOGF("MQTT_EVENT_SUBSCRIBED, msg_id=%d\n", event->msg_id);
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
-            ESP_LOGI(MQTT_TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+            MQTT_EVENT_LOGF("MQTT_EVENT_UNSUBSCRIBED, msg_id=%d\n", event->msg_id);
             break;
         case MQTT_EVENT_PUBLISHED:
-            ESP_LOGI(MQTT_TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+            MQTT_EVENT_LOGF("MQTT_EVENT_PUBLISHED, msg_id=%d\n", event->msg_id);
             break;
         case MQTT_EVENT_DATA:
             mqtt_handle_data_event(event);
             break;
         case MQTT_EVENT_ERROR:
-            ESP_LOGI(MQTT_TAG, "MQTT_EVENT_ERROR");
+            MQTT_EVENT_LOG(F("MQTT_EVENT_ERROR"));
             if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT) {
-                ESP_LOGI(MQTT_TAG, "Last errno string (%s)", strerror(event->error_handle->esp_transport_sock_errno));
+                MQTT_EVENT_LOGF("Last errno string (%s)", strerror(event->error_handle->esp_transport_sock_errno));
             }
             break;
         default:
-            ESP_LOGI(MQTT_TAG, "Other event id:%d", event->event_id);
+            MQTT_EVENT_LOGF("Other event, id=%d\n", event->event_id);
             break;
     }
 }

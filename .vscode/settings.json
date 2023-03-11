@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        ".bash_funct": "shellscript",
+        ".dev_aliases": "shellscript",
+        ".dev_funct": "shellscript",
+        ".bash_ubuntu_aliases": "shellscript",
+        ".bash_dev_funct": "shellscript",
+        ".bash_dev_aliases": "shellscript",
+        ".bash_debian_funct": "shellscript",
+        ".bash_debian_aliases": "shellscript",
+        "functional": "cpp",
+        "array": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "system_error": "cpp"
+    }
+}
