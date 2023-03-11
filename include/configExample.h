@@ -11,7 +11,6 @@
 // Wifi
 #define WLAN_SSID     ""
 #define WLAN_PASS     ""
-#define WIFI_SECURE   false
 
 // MQTT
 #define MQTT_BROKER   ""

@@ -2,8 +2,8 @@
 #define __RGB_DINO_APP_LOG_H__
 
 #include "config.h"
-#include "globals.h"
 #include <Arduino.h>
+#include <HardwareSerial.h>
 #include <ArduinoJson.h>
 #include <mqtt_client.h>
 #include "mqttEventProcessing.h"

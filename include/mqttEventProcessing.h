@@ -3,12 +3,9 @@
 
 #include "config.h"
 #include <mqtt_client.h>
-// #include <esp_log.h>
 
 #define SUBSCRIPTIONDATALEN 100
 #define READ_SUBSCRIPTION_TIMEOUT 2000
-
-static const char *MQTT_TAG = "RGB_DINO";
 
 typedef void (*SubscribeCallbackBufferType)(char *str, uint16_t len);
 
