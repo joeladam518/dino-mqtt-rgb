@@ -1,1 +1,1 @@
-# dino-mqtt-rgb
+# mqtt-rgb-dino
