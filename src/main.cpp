@@ -48,28 +48,22 @@ QueueHandle_t longActionQueue = NULL;
 SemaphoreHandle_t ringMutex = NULL;
 
 // Mqtt client
-esp_mqtt_client_config_t mqtt_config = {
+esp_mqtt_client_handle_t mqttClient = NULL;
+esp_mqtt_client_config_t mqttConfig = {
     .event_loop_handle = &mqttTaskHandle,
-    .host = MQTT_BROKER,
-    .port = MQTT_PORT,
+    .uri = MQTT_URI,
     .client_id = "RGB_MQTT_DINO",
+#if defined(MQTT_SECURE) && MQTT_SECURE
+    .username = MQTT_USER,
+    .password = MQTT_PASS,
+#endif
     .task_prio = 5,
     .task_stack = 6144,
     .buffer_size = 2048,
+#if defined(MQTT_SECURE) && MQTT_SECURE
+    .cert_pem = (const char *)broker_cert,
+#endif
 };
-esp_mqtt_client_handle_t mqttClient;
-
-//==============================================================================
-// Functions
-
-static void stop(const __FlashStringHelper *message = NULL)
-{
-    if (message) {
-        Serial.println(message);
-    }
-
-    while(1);
-}
 
 //==============================================================================
 // Main
@@ -97,22 +91,19 @@ void setup()
 
     // Configure RTOS
     shortActionQueue = xQueueCreate(5, sizeof(SubscriptionAction_t));
-    if (!shortActionQueue) {
-        stop(F("Failed to ceate shortActionQueue"));
-    }
+    APP_FAIL_IF(!shortActionQueue, F("Failed to ceate shortActionQueue"));
     longActionQueue = xQueueCreate(5, sizeof(SubscriptionAction_t));
-    if (!longActionQueue) {
-        stop(F("Failed to ceate longActionQueue"));
-    }
+    APP_FAIL_IF(!longActionQueue, F("Failed to ceate longActionQueue"))
     ringMutex = xSemaphoreCreateMutex();
-    if (!ringMutex) {
-        stop(F("Failed to ceate ringMutex"));
-    }
+    APP_FAIL_IF(!ringMutex, F("Failed to ceate ringMutex"));
 
     // Initialize neopixel ring
     if (xSemaphoreTake(ringMutex, 0) == pdTRUE) {
         ring.begin();
         xSemaphoreGive(ringMutex);
+    } else {
+        Serial.println(F("Didn't start ring"));
+        while(1);
     }
 
     // Create the tasks that process the incomming mqtt data
@@ -136,12 +127,13 @@ void setup()
     );
 
     // Start the mqtt task
-    mqttClient = esp_mqtt_client_init(&mqtt_config);
+    mqttClient = esp_mqtt_client_init(&mqttConfig);
+    APP_FAIL_IF(!mqttClient, F("mqtt client failed to initialize..."));
     esp_mqtt_client_register_event(mqttClient, MQTT_EVENT_ANY, mqtt_event_handler, NULL);
     esp_mqtt_client_start(mqttClient);
 
     Serial.println(F("Finished Setup"));
-    Serial.println("");
+    Serial.println();
 
     // Remove the setup() and loop() task
     vTaskDelete(NULL);

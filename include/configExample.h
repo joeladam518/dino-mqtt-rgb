@@ -9,21 +9,22 @@
 #define APP_MQTT_DEBUG false
 
 // Wifi
-#define WLAN_SSID     ""
-#define WLAN_PASS     ""
+#define WLAN_SSID      ""
+#define WLAN_PASS      ""
 
 // MQTT
-#define MQTT_BROKER   ""
-#define MQTT_PORT     1883  // ssl
-#define MQTT_USER     ""
-#define MQTT_PASS     ""
+// 8883 === ssl
+// 1883 === non-ssl
+#define MQTT_URI       "mqtt://0.0.0.0:1883"
+#define MQTT_USER      ""
+#define MQTT_PASS      ""
 
 // Subscription Topics
-#define SUB_GET_COLOR ""
-#define SUB_SET_COLOR ""
+#define SUB_GET_COLOR  ""
+#define SUB_SET_COLOR  ""
 
 // Publish Topics
-#define PUB_GET_COLOR ""
+#define PUB_GET_COLOR  ""
 
 // Pins
 #define NEO_PIXEL_PIN   14

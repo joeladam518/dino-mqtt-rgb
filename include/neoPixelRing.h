@@ -1,7 +1,6 @@
 #ifndef __RGB_DINO_NEO_PIXEL_RING_H__
 #define __RGB_DINO_NEO_PIXEL_RING_H__
 
-// #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 #include "led.h"
 
